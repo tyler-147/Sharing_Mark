@@ -20,7 +20,7 @@ cd(location_data)
 frame = CSV.read("RGDP_Practice.csv")
 frame_arr = convert(Matrix, frame)
 RGDP = convert(Array{Float64}, frame_arr[:,2])
-demean_RGDP = RGDP - Statistics.mean(RGDP)*ones(size(RGDP))
+demean_RGDP = RGDP - Statistics.mean(RGDP)
 
 #Set up lagged data
 Y = demean_RGDP[2:end]
