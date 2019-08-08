@@ -5,7 +5,18 @@ import CSV, DataFrames, Distributions, Statistics
 using Gadfly
 
 #load RGDP growth FRED data from csv
-cd("C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni")
+if homedir() == "C:\\Users\\tgwin"
+
+  location_data = "C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni"
+
+elseif homedir() == "C:\\Users\\Mark"
+
+  location_data = "C:\\Users\\Mark\\Documents\\git_repos\\Sharing_Mark"
+
+end
+
+cd(location_data)
+
 frame = CSV.read("RGDP_Practice.csv");
 frame_arr = convert(Matrix, frame);
 RGDP = convert(Array{Float64}, frame_arr[:,2]);
@@ -66,3 +77,7 @@ p3 = plot(layer(z=(x,y) -> 1/(factorial(v_-1)/beta_^v_*(2*pi/h_)^(1/2))*y^(v_ - 
           layer(x = betas, y = sig_sq, Geom.point),
           Guide.ylabel("σ²"), Guide.xlabel("β"),
           Guide.title("Joint Prior Normal-Gamma Distribution Contour with Sampled Posterior Parameters"));
+
+display(p1)
+display(p2)
+display(p3)
