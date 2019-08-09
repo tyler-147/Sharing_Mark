@@ -88,7 +88,7 @@ Y_1 = demean_RGDP[1:end-1]
 
 #Estimate OLS betas and get SSE
 beta_OLS  = inv(Y_1'*Y_1)*Y_1'*Y
-errors_sq = (Y - Y_1*b)'*(Y - Y_1*b)
+errors_sq = (Y - Y_1*beta_OLS)'*(Y - Y_1*beta_OLS)
 
 #Update parameters
 var_post   = var_pri + Y_1'*Y_1
