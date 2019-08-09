@@ -10,7 +10,7 @@ using Gadfly
 # Simulation settings
 # -----------------------------------------------------------------------------
 
-n = 500
+nsim = 500
 
 # -----------------------------------------------------------------------------
 # Prior
@@ -70,16 +70,16 @@ v       = v_ + length(Y)/2
 s       = s_ + 1/2*(Y'*Y + beta_*h_*beta_ - beta*h*beta)
 
 #Take n samples of sigma^2 and then sample betas conditional on sigma^2
-betas   = ones(n)
-sig_sq  = rand(InverseGamma(v,s),n)
-for i in 1:n
+betas   = ones(nsim)
+sig_sq  = rand(InverseGamma(v,s),nsim)
+for i in 1:nsim
     betas[i,1] = rand(Normal(beta,inv(h)*sig_sq[i,1]))
 end
 
 #Draw samples from the prior distributions
-sig_sq_ = rand(InverseGamma(v_,s_),n)
-betas_  = ones(n)
-for i in 1:n
+sig_sq_ = rand(InverseGamma(v_,s_),nsim)
+betas_  = ones(nsim)
+for i in 1:nsim
     betas_[i,1] = rand(Normal(beta_,inv(h_)*sig_sq_[i,1]))
 end
 
