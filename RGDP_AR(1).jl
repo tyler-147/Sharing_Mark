@@ -1,10 +1,7 @@
 #AR(1) bayesian regression of RGDP growth rates with plots
 
 #load packages
-import CSV, DataFrames, Statistics
-
-using Distributions
-using Gadfly
+using CSV, DataFrames, Statistics, Distributions, Gadfly
 
 # -----------------------------------------------------------------------------
 # Simulation settings
@@ -46,10 +43,10 @@ end
 #load RGDP growth FRED data from csv
 cd(location_data)
 
-frame       = CSV.read("RGDP_Practice.csv")
+frame       = read("RGDP_Practice.csv")
 frame_arr   = convert(Matrix, frame)
 RGDP        = convert(Array{Float64}, frame_arr[:,2])
-demean_RGDP = RGDP .- Statistics.mean(RGDP)
+demean_RGDP = RGDP .- mean(RGDP)
 
 #Set up lagged data
 Y   = demean_RGDP[2:end]
