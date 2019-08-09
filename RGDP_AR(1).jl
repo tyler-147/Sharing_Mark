@@ -43,7 +43,7 @@ end
 #load RGDP growth FRED data from csv
 cd(location_data)
 
-frame       = read("RGDP_Practice.csv")
+frame       = CSV.read("RGDP_Practice.csv")
 frame_arr   = convert(Matrix, frame)
 RGDP        = convert(Array{Float64}, frame_arr[:,2])
 demean_RGDP = RGDP .- mean(RGDP)
