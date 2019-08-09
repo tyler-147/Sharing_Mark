@@ -109,14 +109,14 @@ scale_post = scale_pri + 1/2*(Y'*Y + mean_pri*var_pri*mean_pri - mean_post*var_p
 p1 = plot(layer(x = betas_pri, Geom.density),
           layer(x = betas, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),Guide.title("Prior and Posterior Density of β"),
-          Coord.cartesian(xmin = .2, xmax = .7, ymin = 0, ymax = 80),
+          Coord.cartesian(xmin = .2, xmax = .7, ymin = 0, ymax = 100),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
 #Prior and Posterior Densities of Sigma Squared
 p2 = plot(layer(x = sig_sq_pri, Geom.density),
           layer(x = sig_sq, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),Guide.title("Prior and Posterior Density of σ²"),
-          Coord.cartesian(xmin = 0, xmax = 13, ymin = 0, ymax = 1.5),
+          Coord.cartesian(xmin = 0, xmax = 13, ymin = 0, ymax = 1.7),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
 #Contour plot of Normal-Gamma joint prior distribution and
