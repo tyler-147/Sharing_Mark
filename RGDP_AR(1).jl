@@ -1,7 +1,9 @@
 #AR(1) bayesian regression of RGDP growth rates with plots
 
 #load packages
-import CSV, DataFrames, Distributions, Statistics
+import CSV, DataFrames, Statistics
+
+using Distributions
 using Gadfly
 
 #load RGDP growth FRED data from csv
@@ -45,16 +47,16 @@ s = s_ + 1/2*(Y'*Y + beta_*h_*beta_ - beta*h*beta)
 #Take n samples of sigma^2 and then sample betas conditional on sigma^2
 n = 500
 betas = ones(n)
-sig_sq = rand(Distributions.InverseGamma(v,s),n)
+sig_sq = rand(InverseGamma(v,s),n)
 for i in 1:n
-    betas[i,1] = rand(Distributions.Normal(beta,inv(h)*sig_sq[i,1]))
+    betas[i,1] = rand(Normal(beta,inv(h)*sig_sq[i,1]))
 end
 
 #Draw samples from the prior distributions
-sig_sq_ = rand(Distributions.InverseGamma(v_,s_),n)
+sig_sq_ = rand(InverseGamma(v_,s_),n)
 betas_ = ones(n)
 for i in 1:n
-    betas_[i,1] = rand(Distributions.Normal(beta_,inv(h_)*sig_sq_[i,1]))
+    betas_[i,1] = rand(Normal(beta_,inv(h_)*sig_sq_[i,1]))
 end
 
 # -----------------------------------------------------------------------------
