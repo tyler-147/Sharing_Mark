@@ -26,7 +26,7 @@ function sample_NIG(nsim, IG_shape, IG_scale, N_mean, N_var)
   betas = ones(nsim)
   
   for i in 1:nsim
-    betas[i,] = rand(Normal(N_mean,inv(h)*sig_sq[i,1]))
+    betas[i,] = rand(Normal(N_mean,inv(N_var)*sig_sq[i,1]))
   end
 
   return sig_sq, betas
