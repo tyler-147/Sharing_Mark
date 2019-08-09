@@ -4,6 +4,36 @@
 using CSV, DataFrames, Statistics, Distributions, Gadfly
 
 # -----------------------------------------------------------------------------
+#Required Functions
+# -----------------------------------------------------------------------------
+
+function sample_NIG(nsim, IG_shape, IG_scale, N_mean, N_var)
+#= This function samples σ² from an Inverse-Gamma distribution given scale and shape 
+  parameters, and then draws from a normal distribution conditional on the drawn 
+  σ². 
+  nsim    = number of samples desired
+  IG_shape = shape parameter for IG distribution
+  IG_scale = scale parameter fro IG distribution
+  N_mean   = mean parameter for Normal distribution
+  N_var    = variance parameter for Normal distribution 
+
+  Returns an (nsamp x 2) arrary [σ² betas] =#
+
+  #Sample σ² 
+  sig_sq = rand(InverseGamma(IG_shape, IG_scale),nsim)
+
+  #Sample a beta conditional on each sig_sq
+  betas = ones(nsim)
+  
+  for i in 1:nsim
+    betas[i,] = rand(Normal(N_mean,inv(h)*sig_sq[i,1]))
+  end
+
+  return sig_sq, betas
+end
+
+
+# -----------------------------------------------------------------------------
 # Simulation settings
 # -----------------------------------------------------------------------------
 
@@ -66,19 +96,10 @@ beta    = inv(h)*(h_*beta_ + Y_1'*Y_1*b)
 v       = v_ + length(Y)/2
 s       = s_ + 1/2*(Y'*Y + beta_*h_*beta_ - beta*h*beta)
 
-#Take n samples of sigma^2 and then sample betas conditional on sigma^2
-betas   = ones(nsim)
-sig_sq  = rand(InverseGamma(v,s),nsim)
-for i in 1:nsim
-    betas[i,1] = rand(Normal(beta,inv(h)*sig_sq[i,1]))
-end
+#Take nsim samples of sigma^2 and betas from posterior and prior distributions
+(sig_sq, betas) = sample_NIG(nsim, v, s, beta, h)
+(sig_sq_, betas_) = sample_NIG(nsim, v_, s_ ,beta_, h_)
 
-#Draw samples from the prior distributions
-sig_sq_ = rand(InverseGamma(v_,s_),nsim)
-betas_  = ones(nsim)
-for i in 1:nsim
-    betas_[i,1] = rand(Normal(beta_,inv(h_)*sig_sq_[i,1]))
-end
 
 # -----------------------------------------------------------------------------
 # Figures
