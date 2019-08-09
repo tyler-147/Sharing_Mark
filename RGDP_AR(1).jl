@@ -43,14 +43,14 @@ nsim = 500
 # Prior
 # -----------------------------------------------------------------------------
 
-# σsq        ~ InverseGamma(  )
-# beta | σsq ~ Normal( beta_ ,  )
+# σ²        ~ InverseGamma( shape, scale   )
+# beta | σsq ~ Normal( mean , σ²*inv*(h) )
 
 #Set up hyperparameters
-beta_ = 0.5
-h_    = 10
-v_    = 7
-s_    = 5
+mean_pri  = 0.5
+var_pri   = 10
+shape_pri = 7
+scale_pri = 5
 
 # -----------------------------------------------------------------------------
 # File I/O settings
@@ -87,18 +87,18 @@ Y_1 = demean_RGDP[1:end-1]
 # -----------------------------------------------------------------------------
 
 #Estimate OLS betas and get SSE
-b         = inv(Y_1'*Y_1)*Y_1'*Y
+beta_OLS  = inv(Y_1'*Y_1)*Y_1'*Y
 errors_sq = (Y - Y_1*b)'*(Y - Y_1*b)
 
 #Update parameters
-h       = h_ + Y_1'*Y_1
-beta    = inv(h)*(h_*beta_ + Y_1'*Y_1*b)
-v       = v_ + length(Y)/2
-s       = s_ + 1/2*(Y'*Y + beta_*h_*beta_ - beta*h*beta)
+var_post   = var_pri + Y_1'*Y_1
+mean_post  = inv(var_post)*(var_pri*mean_pri + Y_1'*Y_1*beta_OLS)
+shape_post = shape_pri + length(Y)/2
+scale_post = scale_pri + 1/2*(Y'*Y + mean_pri*var_pri*mean_pri - mean_post*var_post*mean_post)
 
 #Take nsim samples of sigma^2 and betas from posterior and prior distributions
-(sig_sq, betas) = sample_NIG(nsim, v, s, beta, h)
-(sig_sq_, betas_) = sample_NIG(nsim, v_, s_ ,beta_, h_)
+(sig_sq, betas)   = sample_NIG(nsim, shape_post, scale_post , mean_post, var_post)
+(sig_sq_pri, betas_pri) = sample_NIG(nsim, shape_pri, scale_pri ,mean_pri, var_pri)
 
 
 # -----------------------------------------------------------------------------
@@ -106,21 +106,21 @@ s       = s_ + 1/2*(Y'*Y + beta_*h_*beta_ - beta*h*beta)
 # -----------------------------------------------------------------------------
 
 #Prior and Posterior Densities of Beta
-p1 = plot(layer(x = betas_, Geom.density),
+p1 = plot(layer(x = betas_pri, Geom.density),
           layer(x = betas, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),Guide.title("Prior and Posterior Density of β"),
           Coord.cartesian(xmin = .2, xmax = .7, ymin = 0, ymax = 80),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
 #Prior and Posterior Densities of Sigma Squared
-p2 = plot(layer(x = sig_sq_, Geom.density),
+p2 = plot(layer(x = sig_sq_pri, Geom.density),
           layer(x = sig_sq, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),Guide.title("Prior and Posterior Density of σ²"),
           Coord.cartesian(xmin = 0, xmax = 13, ymin = 0, ymax = 1.5),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
 #Contour plot of Normal-Gamma joint prior distribution and
-p3 = plot(layer(z=(x,y) -> 1/(factorial(v_-1)/beta_^v_*(2*pi/h_)^(1/2))*y^(v_ - 1/2)*exp((-1)*y/2*(h_*(x - beta_)^2 + 2*beta_)),
+p3 = plot(layer(z=(x,y) -> 1/(factorial(shape_pri-1)/mean_pri^shape_pri*(2*pi/var_pri)^(1/2))*y^(shape_pri - 1/2)*exp((-1)*y/2*(var_pri*(x - mean_pri)^2 + 2*mean_pri)),
             xmin=[0], xmax=[1], ymin=[2], ymax=[30], Geom.contour),
           layer(x = betas, y = sig_sq, Geom.point),
           Guide.ylabel("σ²"), Guide.xlabel("β"),
