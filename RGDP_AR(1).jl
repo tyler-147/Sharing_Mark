@@ -7,6 +7,12 @@ using Distributions
 using Gadfly
 
 # -----------------------------------------------------------------------------
+# Simulation settings
+# -----------------------------------------------------------------------------
+
+n = 500
+
+# -----------------------------------------------------------------------------
 # Prior
 # -----------------------------------------------------------------------------
 
@@ -23,7 +29,6 @@ s_    = 5
 # File I/O settings
 # -----------------------------------------------------------------------------
 
-#load RGDP growth FRED data from csv
 if homedir() == "C:\\Users\\tgwin"
 
   location_data = "C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni"
@@ -38,6 +43,7 @@ end
 # Data
 # -----------------------------------------------------------------------------
 
+#load RGDP growth FRED data from csv
 cd(location_data)
 
 frame       = CSV.read("RGDP_Practice.csv")
@@ -64,7 +70,6 @@ v       = v_ + length(Y)/2
 s       = s_ + 1/2*(Y'*Y + beta_*h_*beta_ - beta*h*beta)
 
 #Take n samples of sigma^2 and then sample betas conditional on sigma^2
-n       = 500
 betas   = ones(n)
 sig_sq  = rand(InverseGamma(v,s),n)
 for i in 1:n
