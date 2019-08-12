@@ -119,7 +119,7 @@ p2 = plot(layer(x = sig_sq_pri, Geom.density),
           Coord.cartesian(xmin = 0, xmax = 13, ymin = 0, ymax = 1.7),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
-#Contour plot of Normal-Gamma joint prior distribution and
+#Contour plot of Normal-Gamma joint prior distribution and samples from posterior 
 p3 = plot(layer(z=(x,y) -> 1/(factorial(shape_pri-1)/mean_pri^shape_pri*(2*pi/var_pri)^(1/2))*y^(shape_pri - 1/2)*exp((-1)*y/2*(var_pri*(x - mean_pri)^2 + 2*mean_pri)),
             xmin=[0], xmax=[1], ymin=[2], ymax=[30], Geom.contour),
           layer(x = betas, y = sig_sq, Geom.point),
