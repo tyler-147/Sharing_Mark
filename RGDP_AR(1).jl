@@ -19,7 +19,7 @@ function sample_NIG(nsim, IG_shape, IG_scale, N_mean, N_var)
   Returns an (nsamp x 2) arrary [σ² betas] =#
 
   #Sample σ²
-  sig_sq = rand(InverseGamma(IG_shape, IG_scale),nsim)
+  sig_sq = 1 ./(rand(Chisq(IG_shape),nsim) ./ IG_scale)
 
   #Sample a beta conditional on each sig_sq
   betas = ones(nsim)
@@ -38,11 +38,16 @@ end
 nsim = 500
 
 # -----------------------------------------------------------------------------
-# Prior
+# Prior Specifications
 # -----------------------------------------------------------------------------
 
+#Conjugate NIG
 # σ²        ~ InverseGamma( shape, scale   )
-# beta | σsq ~ Normal( mean , σ²*inv*(h) )
+# β |σ²   ~ Normal( mean , σ²*inv*(h) )
+
+#Independent NIG
+# σ²        ~ InverseGamma( shape, scale   )
+# β  ~ Normal( mean , σ²*inv*(h) )
 
 #Set up hyperparameters
 mean_pri  = 0.5
@@ -91,8 +96,8 @@ errors_sq = (Y - Y_1*beta_OLS)'*(Y - Y_1*beta_OLS)
 #Update parameters
 var_post   = var_pri + Y_1'*Y_1
 mean_post  = inv(var_post)*(var_pri*mean_pri + Y_1'*Y_1*beta_OLS)
-shape_post = shape_pri + length(Y)/2
-scale_post = scale_pri + 1/2*(Y'*Y + mean_pri*var_pri*mean_pri - mean_post*var_post*mean_post)
+shape_post = shape_pri + length(Y)
+scale_post = errors_sq + mean_pri'*var_pri*mean_pri + beta_OLS'*Y_1'*Y_1*beta_OLS - mean_post'*var_post*mean_post
 
 #Take nsim samples of sigma^2 and betas from posterior and prior distributions
 (sig_sq, betas)         = sample_NIG(nsim, shape_post, scale_post , mean_post, var_post)
@@ -209,4 +214,3 @@ display(p5)
 display(p6)
 display(p7)
 display(p8)
-
