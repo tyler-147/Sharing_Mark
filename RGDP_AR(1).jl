@@ -137,8 +137,8 @@ for i in 1:ndraws
 end
 
 #Get rid of the first "burn" samples
-beta_gibb = post_beta_gibb[burn:end,]
-prec_gibb = post_prec_gibb[burn:end,]
+beta_gibb    = post_beta_gibb[burn:end,]
+prec_gibb    = post_prec_gibb[burn:end,]
 sig_sq_gibb  = 1 ./prec_gibb
 # -----------------------------------------------------------------------------
 # Figures
