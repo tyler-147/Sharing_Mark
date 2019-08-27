@@ -51,7 +51,7 @@ function variance_test_function(data, result)
 end
 
 function step_ahead(beta, variance, Y0)
-  #= Given a beta,error variance, and initial value, simulate an AR(1) with 5
+  #= Given a beta,error variance, and initial value, simulate an AR(1) with 200
      datapoints.
      beta     = the coefficient of previous data value
      variance = the variance of the error
