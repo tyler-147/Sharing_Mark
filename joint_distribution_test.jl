@@ -51,7 +51,7 @@ function variance_test_function(data, result)
 end
 
 function step_ahead(beta, variance, Y0)
-  #= Given a beta,error variance, and initial value, simulate an AR(1) with 200
+  #= Given a beta,error variance, and initial value, simulate an AR(1) with 5
      datapoints.
      beta     = the coefficient of previous data value
      variance = the variance of the error
@@ -115,7 +115,7 @@ Y0        = .5
 
 #Sample parameters from prior distribtion
 mparam_conj      = ones(nsim,2)
-mparam_conj[:,2] = 1 ./(rand(Chisq(shape_pri),nsim) ./ scale_pri)
+mparam_conj[:,2] = scale_pri ./ rand(Chisq(shape_pri),nsim)
 
 for i in 1:nsim
   mparam_conj[i,1] = rand(Normal(mean_pri,inv(var_pri)*mparam_conj[i,2]))
@@ -144,7 +144,7 @@ msigma_sq_var_conj = variance_test_function(mparam_conj[:,2], msigma_sq_mom_conj
 # -----------------------------------------------------------------------------
 
 #Sample initial parameters from prior
-int_sigma_sq = 1 ./(rand(Chisq(shape_pri)) ./ scale_pri)
+int_sigma_sq = scale_pri ./rand(Chisq(shape_pri))
 int_beta     = rand(Normal(mean_pri,inv(var_pri)*int_sigma_sq))
 int_param    = [int_beta, int_sigma_sq]
 
@@ -172,7 +172,7 @@ for i in 1:nsim
     scale_post = errors_sq + mean_pri'*var_pri*mean_pri + beta_OLS'*Y_1'*Y_1*beta_OLS - mean_post'*var_post*mean_post
 
     #Sample sigma squared and then beta conditional on sigma squared
-    sparam_conj[i+1,2] = 1 ./(rand(Chisq(shape_post)) ./ scale_post)
+    sparam_conj[i+1,2] = scale_post ./rand(Chisq(shape_post))
     sparam_conj[i+1,1] = rand(Normal(mean_post,inv(var_post)*sparam_conj[i+1,2]))
   end
 end
@@ -197,10 +197,75 @@ sbeta_var_conj[2]     = batch_variance(sec_beta,bins)
 ssigma_sq_var_conj[2] = batch_variance(sec_sig_sq,bins)
 
 # -----------------------------------------------------------------------------
+# Successive-Conditional Simulation (Independent)
+# -----------------------------------------------------------------------------
+
+#Sample initial parameters from prior
+int_sigma_sq = scale_pri ./rand(Chisq(shape_pri))
+int_beta     = rand(Normal(mean_pri,inv(var_pri)*int_sigma_sq))
+int_param    = [int_beta, int_sigma_sq]
+
+#Parameter update
+shape_post_ind = shape_pri + 200
+
+#Fill in
+sparam_ind      = ones(nsim, 2)
+sparam_ind[1,:] = int_param
+sdata_ind       = ones(200, nsim)
+
+for i in 1:nsim
+  #Simulate data conditional on previous data
+  sdata_ind[:,i] = step_ahead(sparam_ind[i,1], sparam_ind[i,2], Y0)
+
+  #Simulate parameters
+  if i!=nsim
+    #Estimate OLS and get SE
+    Y_1 = pushfirst!(sdata_conj[1:end-1,i], Y0)
+    Y   = sdata_conj[1:end,i]
+
+    #Update parameters
+    prec_ind = var_pri + sparam_ind[i,2]*Y_1'*Y_1
+    mean_ind = inv(prec_ind)*(var_pri*mean_pri + sparam_ind[i,2]*Y_1'*Y)
+
+    #Sample beta
+    sparam_ind[i+1,1] = rand(Normal(mean_ind, inv(prec_ind)))
+
+    #Sample sigma squared
+    scale_ind         = scale_pri + (Y - Y_1*sparam_ind[i+1,1])'*(Y - Y_1*sparam_ind[i+1,1])
+    sparam_ind[i+1,2] = scale_ind / rand(Chisq(shape_post_ind))
+  end
+end
+
+#Burn intitial estimates
+sparam_ind = sparam_ind[burn:end,:]
+sdata_indb = sdata_ind[:,burn:end]
+
+#Estimate test functions
+sbeta_mom_ind     = first_second_moment(sparam_ind[:,1])
+ssigma_sq_mom_ind = first_second_moment(sparam_ind[:,2])
+
+#Use OBM to estimate the variance of first moment
+sbeta_var_ind        = ones(2)
+ssigma_sq_var_ind    = ones(2)
+sbeta_var_ind[1]     = batch_variance(sparam_ind[:,1],bins)
+ssigma_sq_var_ind[1] = batch_variance(sparam_ind[:,2],bins)
+
+#Use OBM to estimate variance of second moment
+sec_beta_ind         = (sparam_ind[:,1] .- mean(sparam_ind[:,2])).^2
+sec_sig_sq_ind       = (sparam_ind[:,2] .- mean(sparam_ind[:,2])).^2
+sbeta_var_ind[2]     = batch_variance(sec_beta_ind,bins)
+ssigma_sq_var_ind[2] = batch_variance(sec_sig_sq_ind,bins)
+
+# -----------------------------------------------------------------------------
 # Estimate Geweke test statistic
 # -----------------------------------------------------------------------------
 
-beta_first    = (mbeta_mom_conj[1] - sbeta_mom_conj[1])/(1/dim*(mbeta_var_conj[1] + sbeta_var_conj[1]))^(1/2)
-beta_second   = (mbeta_mom_conj[2] - sbeta_mom_conj[2])/(1/dim*(mbeta_var_conj[2] + sbeta_var_conj[2]))^(1/2)
-sig_sq_first  = (msigma_sq_mom_conj[1] - ssigma_sq_mom_conj[1])/(1/dim*(msigma_sq_var_conj[1] + ssigma_sq_var_conj[1]))^(1/2)
-sig_sq_second = (msigma_sq_mom_conj[2] - ssigma_sq_mom_conj[2])/(1/dim*(msigma_sq_var_conj[2] + ssigma_sq_var_conj[2]))^(1/2)
+beta_first_conj    = (mbeta_mom_conj[1] - sbeta_mom_conj[1])/(1/dim*(mbeta_var_conj[1] + sbeta_var_conj[1]))^(1/2)
+beta_second_conj   = (mbeta_mom_conj[2] - sbeta_mom_conj[2])/(1/dim*(mbeta_var_conj[2] + sbeta_var_conj[2]))^(1/2)
+sig_sq_first_conj  = (msigma_sq_mom_conj[1] - ssigma_sq_mom_conj[1])/(1/dim*(msigma_sq_var_conj[1] + ssigma_sq_var_conj[1]))^(1/2)
+sig_sq_second_conj = (msigma_sq_mom_conj[2] - ssigma_sq_mom_conj[2])/(1/dim*(msigma_sq_var_conj[2] + ssigma_sq_var_conj[2]))^(1/2)
+
+beta_first_ind    = (mbeta_mom_conj[1] - sbeta_mom_ind[1])/(1/dim*(mbeta_var_conj[1] + sbeta_var_ind[1]))^(1/2)
+beta_second_ind   = (mbeta_mom_conj[2] - sbeta_mom_ind[2])/(1/dim*(mbeta_var_conj[2] + sbeta_var_ind[2]))^(1/2)
+sig_sq_first_ind  = (msigma_sq_mom_conj[1] - ssigma_sq_mom_ind[1])/(1/dim*(msigma_sq_var_conj[1] + ssigma_sq_var_ind[1]))^(1/2)
+sig_sq_second_ind = (msigma_sq_mom_conj[2] - ssigma_sq_mom_ind[2])/(1/dim*(msigma_sq_var_conj[2] + ssigma_sq_var_ind[2]))^(1/2)
