@@ -11,7 +11,7 @@ function sample_NIG(nsim, IG_shape, IG_scale, N_mean, N_var)
 #= This function samples σ² from an Inverse-Gamma distribution given scale and shape
   parameters, and then draws from a normal distribution conditional on the drawn
   σ².
-  nsim    = number of samples desired
+  nsim     = number of samples desired
   IG_shape = shape parameter for IG distribution
   IG_scale = scale parameter fro IG distribution
   N_mean   = mean parameter for Normal distribution
@@ -25,7 +25,7 @@ function sample_NIG(nsim, IG_shape, IG_scale, N_mean, N_var)
   betas = ones(nsim)
 
   for i in 1:nsim
-    betas[i,] = rand(Normal(N_mean,inv(N_var)*sig_sq[i,1]))
+    betas[i,] = rand(Normal(N_mean,sqrt(inv(N_var)*sig_sq[i,1])))
   end
 
   return sig_sq, betas
@@ -35,7 +35,7 @@ end
 # Simulation settings
 # -----------------------------------------------------------------------------
 
-nsim = 500
+nsim = 5000
 
 # -----------------------------------------------------------------------------
 # Prior Specifications
@@ -51,7 +51,7 @@ nsim = 500
 
 #Set up hyperparameters
 mean_pri  = 0.5
-var_pri   = 10
+var_pri   = 5
 shape_pri = 7
 scale_pri = 5
 
@@ -61,7 +61,7 @@ scale_pri = 5
 
 if homedir() == "C:\\Users\\tgwin"
 
-  location_data = "C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni"
+  location_data = "C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni\\Practice"
 
 elseif homedir() == "C:\\Users\\Mark"
 
@@ -129,12 +129,12 @@ for i in 1:ndraws
   end
 
   #sample beta
-  post_beta_gibb[i,] = rand(Normal(mean_gibb,inv(prec_gibb)))
+  post_beta_gibb[i,] = rand(Normal(mean_gibb,sqrt(inv(prec_gibb))))
 
   #update parameters to sample precision matrix
   scale_gibb          = scale_pri + (Y - Y_1*post_beta_gibb[i,1])'*(Y - Y_1*post_beta_gibb[i,1])
   post_prec_gibb[i,1] = rand(Chisq(shape_post_ind))/scale_gibb
-end
+end 
 
 #Get rid of the first "burn" samples
 beta_gibb    = post_beta_gibb[burn:end,]
@@ -148,14 +148,14 @@ sig_sq_gibb  = 1 ./prec_gibb
 p1 = plot(layer(x = betas_pri, Geom.density),
           layer(x = betas, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),Guide.title("Prior and Posterior Density of β"),
-          Coord.cartesian(xmin = .2, xmax = .7, ymin = 0, ymax = 100),
+          Coord.cartesian(xmin = -.5, xmax = 1.5, ymin = 0, ymax = 6),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
 #Prior and Conjugate Posterior Densities of Sigma Squared
 p2 = plot(layer(x = sig_sq_pri, Geom.density),
           layer(x = sig_sq, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),Guide.title("Prior and Posterior Density of σ²"),
-          Coord.cartesian(xmin = 0, xmax = 13, ymin = 0, ymax = 1.7),
+          Coord.cartesian(xmin = 0, xmax = 13, ymin = 0, ymax = 1.3),
           Guide.manual_color_key("",["Prior","Posterior"],[Gadfly.current_theme().default_color,"green"]))
 
 #Contour plot of Normal-Gamma joint prior distribution using samples from conjugate posterior
@@ -171,7 +171,7 @@ p4 = plot(layer(x = betas_pri, Geom.density),
           layer(x = betas, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),
           Guide.title("Prior and Different Posterior Distributions of β"),
-          Coord.cartesian(xmin = 0.2, xmax = 0.7, ymin = 0, ymax = 100),
+          Coord.cartesian(xmin = -.5, xmax = 1.5, ymin = 0, ymax = 6),
           Guide.manual_color_key("",["Prior","Independent Posterior","NIG Posterior"],[Gadfly.current_theme().default_color,"darkorchid1","green"]))
 
 #Conjugate and Independent NIG Posterior Densities
@@ -179,7 +179,7 @@ p5 = plot(layer(x = beta_gibb, Geom.density, Theme(default_color = "darkorchid1"
           layer(x = betas, Geom.density, Theme(default_color = "green")),
           Guide.ylabel("Density"),
           Guide.title("Posterior Distributions with Different Priors of β"),
-          Coord.cartesian(xmin = 0.28, xmax = 0.33, ymin = 0, ymax = 100),
+          Coord.cartesian(xmin = 0, xmax = 0.7, ymin = 0, ymax = 6),
           Guide.manual_color_key("",["Independent NIG","Conjugate NIG"],["darkorchid1","green"]))
 
 #Prior and Both Posterior Densities of Sigma Squared
