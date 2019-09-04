@@ -1,0 +1,118 @@
+#= Marginal-Conditional Simulator draws from joint distribution of parameters and
+data for AR(1) model . This also tests the difference between the mean of the one step ahead data and the mean of
+the beta distribution multiplied by the initial Y value. This runs the mean conditional
+simulator "runtimes" number of times, and the mean of the difference is reported.
+If mean_difference is equal to 0, or essentially equal to zero, the simulator is
+expected to be correct.=#
+
+#load packages
+using Distributions, Statistics
+
+# -----------------------------------------------------------------------------
+# Specifications
+# -----------------------------------------------------------------------------
+#=    Joint:
+    P(θ,Y) = P(θ)*P(Y|θ)
+
+    Parameters:
+    σ²     ~ InverseGamma( shape , scale   )
+    β |σ²  ~ Normal( mean , σ²*inv*(h) )
+
+    Data
+    Y |β,σ²,Y⁰ ~ Normal( β*Y⁰ , σ²) =#
+
+# -----------------------------------------------------------------------------
+# Required Functions
+# -----------------------------------------------------------------------------
+
+function step_ahead(beta, variance, Y0, nsim, steps)
+    #= Estimate a step ahead for an AR(1)
+       beta     = the coefficient of the lagged variable
+       variance = the variance of the error term
+       Y0       = starting value
+       nsim     = number of times simulation run
+       steps    = number of steps ahead the forecast is run
+       Returns a (steps x nsim) matrix of forecasts =#
+
+    #Create empty matrix to fill in
+    fill      = ones(steps, nsim)
+    fill[1,:] = fill[1,:]*Y0
+
+    #Forecast ahead one step at a time
+    for i in 1: nsim
+        for j in 2:steps
+            fill[j,i] = beta*fill[j-1,i] + rand(Normal(0,sqrt(variance)))
+        end
+    end
+
+    return fill
+end
+
+function marginal_conditional(Y0, shape, scale, mean, var, nsim, tsim)
+    #= Draws sample from joint distribution of parameters and data using
+    marginal-conditional simulator with Normal Inverse-Gamma prior
+    Y0    = initial data starting point
+    shape = IG shape prior for variance parameter
+    scale = IG scale prior for variance parameter
+    mean  = Normal mean prior for beta parameter
+    var   = Normal variance prior for beta parameter
+    nsim  = number of samples desired from joint distribution
+    tsim  = number of steps ahead desired for drawn data
+    Returns a [nsim x 3] of draws from joint distribution =#
+
+    #Draw variance parameters from prior distribution
+    sig_sq = rand(InverseGamma(shape, scale), nsim)
+
+    #Draw betas conditional on previously drawn variance parameters
+    betas = ones(nsim)
+
+    for i in 1:nsim
+        betas[i] = rand(Normal(mean, sqrt(inv(var)*sig_sq[i])))
+    end
+
+    #Draw data conditional on parameters
+    data = ones(tsim, nsim)
+
+    for i in 1:nsim
+        data[:,i] = step_ahead(betas[i], sig_sq[i], Y0, 1, tsim)
+    end
+
+    return sig_sq, betas, data
+end
+
+# -----------------------------------------------------------------------------
+# Run Example "runtimes" and Check Accuracy
+# -----------------------------------------------------------------------------
+
+#Number of example runtimes
+runtimes = 50
+
+#Example Parameters
+Y0        = 1
+shape_pri = 10
+scale_pri = 2
+mean_pri  = 0.2
+var_pri   = 4
+nsim      = 10000
+tsim      = 5
+
+#Run Example
+differ = ones(runtimes)
+
+for i in 1:runtimes
+    #Run example
+    ex     = marginal_conditional(Y0, shape_pri, scale_pri, mean_pri, var_pri, nsim, tsim)
+    sig_sq = ex[1]
+    betas  = ex[2]
+    data   = ex[3]
+
+    #Check difference in mean of first step ahead and mean of the betas distribution times Y0
+    mean_betas = mean(betas)
+    Y_beta_mean = mean_betas*Y0
+    mean_data = mean(data[2,:])
+
+    differ[i] = Y_beta_mean - mean_data
+end
+
+#Mean of difference
+mean_difference = mean(differ)
