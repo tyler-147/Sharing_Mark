@@ -16,7 +16,7 @@ using Distributions, Statistics
 
     Parameters:
     σ²     ~ InverseGamma( shape , scale   )
-    β |σ²  ~ Normal( mean , σ²*inv*(h) )
+    β |σ²  ~ Normal( mean , σ²*inv(h) )
 
     Data
     Y |β,σ²,Y⁰ ~ Normal( β*Y⁰ , σ²) =#
@@ -107,9 +107,9 @@ for i in 1:runtimes
     data   = ex[3]
 
     #Check difference in mean of first step ahead and mean of the betas distribution times Y0
-    mean_betas = mean(betas)
+    mean_betas  = mean(betas)
     Y_beta_mean = mean_betas*Y0
-    mean_data = mean(data[2,:])
+    mean_data   = mean(data[2,:])
 
     differ[i] = Y_beta_mean - mean_data
 end
