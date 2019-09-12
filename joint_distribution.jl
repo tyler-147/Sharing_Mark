@@ -1,4 +1,9 @@
-#Joint Distributino Test of an AR(1) model following Geweke (2004)
+#= Joint Distribution Test of an AR(1) model following Geweke (2004). The test 
+statistics presented at the end of the script are approximately distributed by a 
+unit normal distribution. If the test statistic is outside of the desired critial 
+value, the test fails, and there is some error in the theory or code. If the test
+statistic is inside the critical values, this test suggests that the posterior 
+simulation and prior distribution are of the same joint distribution. =#
 
 #load packages
 using Gadfly, Statistics, Distributions
