@@ -1,8 +1,8 @@
-#= Joint Distribution Test of an AR(1) model following Geweke (2004). The test 
-statistics presented at the end of the script are approximately distributed by a 
-unit normal distribution. If the test statistic is outside of the desired critial 
+#= Joint Distribution Test of an AR(1) model following Geweke (2004). The test
+statistics presented at the end of the script are approximately distributed by a
+unit normal distribution. If the test statistic is outside of the desired critial
 value, the test fails, and there is some error in the theory or code. If the test
-statistic is inside the critical values, this test suggests that the posterior 
+statistic is inside the critical values, this test suggests that the posterior
 simulation and prior distribution are of the same joint distribution. =#
 
 #load packages
@@ -274,5 +274,127 @@ geweke_beta_first  = geweke_test_first_mom(a[1], b[1], burn)
 geweke_beta_second = geweke_test_second_mom(a[1], b[1], burn)
 
 #Test sig_sq
-geweke_sig_sq_first   = geweke_test_first_mom(a[2], b[2], burn)
-geweke_sig_sq2_second = geweke_test_second_mom(a[2], b[2], burn)
+geweke_sig_sq_first  = geweke_test_first_mom(a[2], b[2], burn)
+geweke_sig_sq_second = geweke_test_second_mom(a[2], b[2], burn)
+
+# -----------------------------------------------------------------------------
+# Mistake Check 1
+# -----------------------------------------------------------------------------
+#= Use a different hyperparameter for the scale value of the IV dist in the
+marginal-conditional simulator and the successive-conditional simulator. =#
+
+#Sample betas and sigma-sq from marginal-conditional and successive-conditonal simulators
+a_e1 = marginal_conditional(Y0, shape_pri, scale_pri - 1, mean_pri, var_pri, nsim, tsim)
+b_e1 = successive_posterior(Y0, shape_pri, scale_pri, mean_pri, var_pri, nsim, tsim)
+
+#Test betas
+geweke_beta_first_e1  = geweke_test_first_mom(a_e1[1], b_e1[1], burn)
+geweke_beta_second_e1 = geweke_test_second_mom(a_e1[1], b_e1[1], burn)
+
+#Test sig_sq
+geweke_sig_sq_first_e1  = geweke_test_first_mom(a_e1[2], b_e1[2], burn)
+geweke_sig_sq_second_e1 = geweke_test_second_mom(a_e1[2], b_e1[2], burn)
+
+# -----------------------------------------------------------------------------
+# Mistake Check 2
+# -----------------------------------------------------------------------------
+#= Uses the initial sig_sq drawn from the prior for the successive-conditional
+simulator rather than updating, conditional on the data. =#
+
+#Incorrect function
+function successive_posterior_error(Y0, shape, scale, mean, var, nsim, tsim)
+    #The same as the function "successive_posterior" but doesn't update the sig_sq
+
+    #Draw inital sample of parameters from prior distribution
+    sig_pri  = rand(InverseGamma(shape, scale))
+    beta_pri = rand(Normal(mean, sqrt(inv(var)*sig_pri)))
+
+    #Create vectors to fill in with sampled data
+    sig_sq = ones(nsim)
+    beta   = ones(nsim)
+    data   = ones(tsim, nsim)
+
+    #Successively draw data and parameters conditional on the other
+    for i in 1:nsim
+        #Draw data conditional on parameters
+        if i == 1
+            data[:,i] = step_ahead(beta_pri, sig_pri, Y0, 1, tsim)
+        else
+            data[:,i] = step_ahead(beta[i - 1], sig_pri, Y0, 1, tsim)
+        end
+
+        #Organize data as AR(1) model
+        Y   = reverse(data[2:end,i])
+        Y_1 = reverse(data[1:end-1,i])
+
+        #Estimate OLS betas
+        beta_OLS = inv(Y_1'*Y_1)*Y_1'*Y
+
+        #Update parameter distribution hyperparameters using drawn data
+        var_post   = Y_1'*Y_1 + var
+        mean_post  = inv(var_post)*(var*mean + Y_1'*Y_1*beta_OLS)
+        shape_post = shape + (tsim - 1)/2
+        scale_post = scale + .5*(Y'*Y + mean'*var*mean - mean_post'*var_post*mean_post)
+
+        #Draw parameters conditional on data with updated parameters
+        sig_sq[i] = rand(InverseGamma(shape_post, scale_post))
+        beta[i]   = rand(Normal(mean_post, sqrt(inv(var_post)*sig_pri)))
+
+    end
+    return beta, sig_sq, data
+end
+
+#Sample betas and sigma-sq from marginal-conditional and successive-conditonal simulators
+a_e2 = marginal_conditional(Y0, shape_pri, scale_pri, mean_pri, var_pri, nsim, tsim)
+b_e2 = successive_posterior_error(Y0, shape_pri, scale_pri, mean_pri, var_pri, nsim, tsim)
+
+#Test betas
+geweke_beta_first_e2  = geweke_test_first_mom(a_e2[1], b_e2[1], burn)
+geweke_beta_second_e2 = geweke_test_second_mom(a_e2[1], b_e2[1], burn)
+
+#Test sig_sq
+geweke_sig_sq_first_e2  = geweke_test_first_mom(a_e2[2], b_e2[2], burn)
+geweke_sig_sq_second_e2 = geweke_test_second_mom(a_e2[2], b_e2[2], burn)
+
+# -----------------------------------------------------------------------------
+# Mistake Check 3
+# -----------------------------------------------------------------------------
+#= Uses variance rather than standard deviation for drawing beta in the
+marginal-conditional simulator. =#
+
+#Incorrect function
+function marginal_conditional_error(Y0, shape, scale, mean, var, nsim, tsim)
+    #= The same function as "marginal_conditional" except uses variance rather
+    than standard deviation when drawing from the normal distribution. =#
+
+    #Draw variance parameters from prior distribution
+    sig_sq = rand(InverseGamma(shape, scale), nsim)
+
+    #Draw betas conditional on previously drawn variance parameters
+    betas = ones(nsim)
+
+    for i in 1:nsim
+        betas[i] = rand(Normal(mean, inv(var)*sig_sq[i]))
+    end
+
+    #Draw data conditional on parameters
+    data = ones(tsim, nsim)
+
+    for i in 1:nsim
+        data[:,i] = step_ahead(betas[i], sig_sq[i], Y0, 1, tsim)
+    end
+
+    return betas, sig_sq, data
+end
+
+#Sample betas and sigma-sq from marginal-conditional and successive-conditonal simulators
+a_e3 = marginal_conditional_error(Y0, shape_pri, scale_pri, mean_pri, var_pri, nsim, tsim)
+b_e3 = successive_posterior_error(Y0, shape_pri, scale_pri, mean_pri, var_pri, nsim, tsim)
+
+#Test betas
+geweke_beta_first_e3  = geweke_test_first_mom(a_e3[1], b_e3[1], burn)
+geweke_beta_second_e3 = geweke_test_second_mom(a_e3[1], b_e3[1], burn)
+
+#Test sig_sq
+geweke_sig_sq_first_e3  = geweke_test_first_mom(a_e3[2], b_e3[2], burn)
+geweke_sig_sq_second_e3 = geweke_test_second_mom(a_e3[2], b_e3[2], burn)
