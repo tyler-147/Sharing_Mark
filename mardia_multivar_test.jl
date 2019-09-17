@@ -1,4 +1,4 @@
-# Multivariate normal test
+# Multivariate normal test (Mardia, 1970)
 
 #load packages
 using Statistics, Distributions
