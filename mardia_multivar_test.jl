@@ -10,10 +10,10 @@ Random.seed!(8675309)
 # Function
 # -----------------------------------------------------------------------------
 
-function multivar_test(input, p_value)
+function multivar_test(input::Matrix{<: AbstractFloat}, p_value::AbstractFloat)
     #= Uses Mardia's test to check if a given vector of data is multivariate
     normal distribution.
-    input   = n  k-dimensional vectors (k x n) that will be tested to see if it is multivariate normal
+    input   = n  p-dimensional vectors (p x n) that will be tested to see if it is multivariate normal
     p_value = the p-value level that constitutes rejecting the null hypothesis
     Returns a (3 x 1) vector (result), with result[1] representing the skewness
     and the kurtosis first. 1  it if passes test (is
@@ -24,58 +24,79 @@ function multivar_test(input, p_value)
     #Dimensions of the dataset
     dims = size(input)
 
-    k, ndraws = dims[1], dims[2]
+    p, ndraws = dims[1], dims[2]
 
     #Mean of draws
-    m_draw = mean(input, dims = 2)
+    m_draw = mean(input, dims = 2)[:] 
+    # trailing [:] operation makes it a Vector in the Julia sense of having second dimension equal to 1
 
     #Covariance of draws without correcting for degrees of freedom
     sigma     = cov(input', corrected = false)
     inv_sigma = inv(sigma)
 
+    # ---------------------------------
     #Estimate multivariate skewness
-    fill = ones(ndraws, ndraws)
+    # ---------------------------------
 
+    b1p = 0.0
+
+    # Mardia (1974) 2.2
     for i in 1:ndraws
+
+        xim_invS = (input[:,i] - m_draw)' * inv_sigma
+
         for j in 1:ndraws
-            am        = 1/(ndraws^2)*((input[:,i] - m_draw)'*inv_sigma*(input[:,j] - m_draw))^3
-            fill[i,j] = am[1]
+            
+            b1p += ( xim_invS * (input[:,j] - m_draw) )^3
+        
         end
     end
 
-    skew = sum(fill)
+    b1p = (1/ndraws^2) * b1p
 
+    # ---------------------------------
     #Estimate multivariate kurtosis
-    fill = ones(ndraws)
+    # ---------------------------------
 
+    b2p = 0.0 # sample kurtosis
+
+    # implement Mardia (1970) 3.12
     for i in 1:ndraws
-        am      = 1/ndraws*((input[:,i] - m_draw)'*inv_sigma*(input[:,i] - m_draw))^2
-        fill[i] = am[1]
+        
+        xim  = input[:,i] - m_draw
+        b2p += ( xim' * inv_sigma * xim )^2
+    
     end
 
-    kurt = sum(fill)
+    b2p = (1/ndraws) * b2p
+
+    # ---------------------------------
+    # p values for test statistics
+    # ---------------------------------
 
     #Find p-value for skewness
-    A           = ndraws/6*skew
-    deg_free    = k*(k + 1)*(k + 2)/6
-    skew_result = 1 - cdf(Chisq(deg_free), A)
+    A               = (ndraws/6)*b1p # Mardia (1974) 5.4
+    deg_free        = p*(p + 1)*(p + 2)/6
+    skew_test_pval  = 1 - cdf(Chisq(deg_free), A)
 
     #Find p-value for kurtosis
-    B           = (kurt - k*(k + 2))*sqrt(ndraws/(8*k*(k + 2)))
-    kurt_result = 1 - cdf(Normal(0,1), abs(B))
+    # beta2p : true value of multi. kurt. under Mardia's def
+    beta2p          = p*(p+2) # Mardia (1970) 3.11
+    B               = (b2p - beta2p) / sqrt( (8*p*(p + 2))/ndraws )
+    kurt_test_pval  = 1 - cdf(Normal(0,1), abs(B))
 
     #Compare the reults to the desired p-value
     result = zeros(2)
 
-    if skew_result >= p_value
+    if skew_test_pval >= p_value
         result[1] = 1
     end
 
-    if kurt_result >= p_value/2
+    if kurt_test_pval >= p_value/2
         result[2] = 1
     end
 
-    return result, skew_result, kurt_result
+    return result, skew_test_pval, kurt_test_pval, b1p, b2p
 end
 
 # -----------------------------------------------------------------------------
@@ -97,9 +118,9 @@ sample = rand(MvNormal(mean_draw, cov_draw), n_draws)
 sample_e1 = rand(MvLogNormal(mean_draw, cov_draw), n_draws)
 sample_e2 = rand(TDist(5), (n_vec, n_draws))
 sample_e3 = rand(Uniform(-50, 50), (n_vec, n_draws))
-sample_e4 = rand(MvTDist(4, zeros(n_vec), cov_draw), n_draws)
+sample_e4 = rand(MvTDist(5, zeros(n_vec), cov_draw), n_draws)
 
-#Prep for matrix t-distribution
+print("samples drawn")
 
 #Check results
 res    = multivar_test(sample, p_value)
