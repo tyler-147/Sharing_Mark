@@ -66,7 +66,7 @@ function multivar_test(input, p_value)
         result[1] = 1
     end
 
-    if kurt_result >= p_value
+    if kurt_result >= p_value/2
         result[2] = 1
     end
 
