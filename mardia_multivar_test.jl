@@ -2,6 +2,9 @@
 
 #load packages
 using Statistics, Distributions
+using Random
+
+Random.seed!(8675309)
 
 # -----------------------------------------------------------------------------
 # Function
