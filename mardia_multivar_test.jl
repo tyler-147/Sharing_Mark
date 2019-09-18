@@ -13,7 +13,7 @@ Random.seed!(8675309)
 function multivar_test(input, p_value)
     #= Uses Mardia's test to check if a given vector of data is multivariate
     normal distribution.
-    input   = n  k-dimensional vectors (n x p) that will be tested to see if it is multivariate normal
+    input   = n  k-dimensional vectors (k x n) that will be tested to see if it is multivariate normal
     p_value = the p-value level that constitutes rejecting the null hypothesis
     Returns a (3 x 1) vector (result), with result[1] representing the skewness
     and the kurtosis first. 1  it if passes test (is
@@ -24,6 +24,8 @@ function multivar_test(input, p_value)
     #Dimensions of the dataset
     dims = size(input)
 
+    k, ndraws = dims[1], dims[2]
+
     #Mean of draws
     m_draw = mean(input, dims = 2)
 
@@ -32,11 +34,11 @@ function multivar_test(input, p_value)
     inv_sigma = inv(sigma)
 
     #Estimate multivariate skewness
-    fill = ones(dims[2], dims[2])
+    fill = ones(ndraws, ndraws)
 
-    for i in 1:dims[2]
-        for j in 1:dims[2]
-            am        = 1/(dims[2]^2)*((input[:,i] - m_draw)'*inv_sigma*(input[:,j] - m_draw))^3
+    for i in 1:ndraws
+        for j in 1:ndraws
+            am        = 1/(ndraws^2)*((input[:,i] - m_draw)'*inv_sigma*(input[:,j] - m_draw))^3
             fill[i,j] = am[1]
         end
     end
@@ -44,22 +46,22 @@ function multivar_test(input, p_value)
     skew = sum(fill)
 
     #Estimate multivariate kurtosis
-    fill = ones(dims[2])
+    fill = ones(ndraws)
 
-    for i in 1:dims[2]
-        am      = 1/dims[2]*((input[:,i] - m_draw)'*inv_sigma*(input[:,i] - m_draw))^2
+    for i in 1:ndraws
+        am      = 1/ndraws*((input[:,i] - m_draw)'*inv_sigma*(input[:,i] - m_draw))^2
         fill[i] = am[1]
     end
 
     kurt = sum(fill)
 
     #Find p-value for skewness
-    A           = dims[2]/6*skew
-    deg_free    = dims[1]*(dims[1] + 1)*(dims[1] + 2)/6
+    A           = ndraws/6*skew
+    deg_free    = k*(k + 1)*(k + 2)/6
     skew_result = 1 - cdf(Chisq(deg_free), A)
 
     #Find p-value for kurtosis
-    B           = (kurt - dims[1]*(dims[1] + 2))*sqrt(dims[2]/(8*dims[1]*(dims[1] + 2)))
+    B           = (kurt - k*(k + 2))*sqrt(ndraws/(8*k*(k + 2)))
     kurt_result = 1 - cdf(Normal(0,1), abs(B))
 
     #Compare the reults to the desired p-value
