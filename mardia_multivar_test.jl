@@ -94,8 +94,6 @@ sample_e2 = rand(TDist(5), (n_vec, n_draws))
 sample_e3 = rand(Uniform(-50, 50), (n_vec, n_draws))
 sample_e4 = rand(MvTDist(4, zeros(n_vec), cov_draw), n_draws)
 
-#Prep for matrix t-distribution
-
 #Check results
 res    = multivar_test(sample, p_value)
 e1_res = multivar_test(sample_e1, p_value)
