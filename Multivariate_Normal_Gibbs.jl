@@ -4,7 +4,7 @@ analytical conditional distributions to estimate multivariate normal
 distribution. =#
 
 #load packages
-using Distributions, Statistics, Gadfly
+using Distributions, Statistics, LinearAlgebra
 
 # -----------------------------------------------------------------------------
 # Function
@@ -43,7 +43,7 @@ function MvNormal_Gibbs(nsim::Integer, mean_vector::Array{Float64,1},
 
             #Form vector of conditional
             a = vcat(samp[1:start - 1,i], samp[stop + 1:end, i - 1])
-      
+
             #Σ11
             Σ11 = covariance[start:stop , start:stop]
 
@@ -71,6 +71,7 @@ function MvNormal_Gibbs(nsim::Integer, mean_vector::Array{Float64,1},
 
             #Covariance for sampling distribution
             Σ = Σ11 - Σ12*inv(Σ22)*Σ21
+            Σ = 0.5*(Σ + Σ')
 
             #Sample
             samp[start:stop, i] = rand(MvNormal(μ, Σ))
@@ -88,13 +89,18 @@ end
 
 nsim        = 1000
 vec_len     = 20
-mean_vector = rand(Normal(), vec_len)
+mean_vector = rand(vec_len)
 prep        = rand(vec_len,vec_len)
 covariance  = (prep + prep')/2 + vec_len*Matrix{Float64}(I, vec_len, vec_len )
 nsub        = 5
+burn        = 300
 
 # -----------------------------------------------------------------------------
 # Example
 # -----------------------------------------------------------------------------
 
 samp = MvNormal_Gibbs(nsim, mean_vector, covariance, nsub)
+
+#Check difference in mean
+mean_check = mean(samp[:,burn:end] , dims = 2) - mean_vector
+
