@@ -4,7 +4,10 @@ analytical conditional distributions to estimate multivariate normal
 distribution. =#
 
 #load packages
-using Distributions, Statistics, LinearAlgebra
+using Distributions, Statistics, LinearAlgebra, Random
+
+#Set random seed
+Random.seed!(8675309)
 
 # -----------------------------------------------------------------------------
 # Function
@@ -103,4 +106,3 @@ samp = MvNormal_Gibbs(nsim, mean_vector, covariance, nsub)
 
 #Check difference in mean
 mean_check = mean(samp[:,burn:end] , dims = 2) - mean_vector
-
