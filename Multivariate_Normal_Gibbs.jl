@@ -43,6 +43,7 @@ function MvNormal_Gibbs(nsim::Integer, mean_vector::Array{Float64,1},
 
             #Form vector of conditional
             a = vcat(samp[1:start - 1,i], samp[stop + 1:end, i - 1])
+      
             #Σ11
             Σ11 = covariance[start:stop , start:stop]
 
