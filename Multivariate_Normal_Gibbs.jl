@@ -13,73 +13,76 @@ Random.seed!(8675309)
 # Function
 # -----------------------------------------------------------------------------
 
-function MvNormal_Gibbs(nsim::Integer, mean_vector::Array{Float64,1},
-                        covariance::Array{Float64,2}, nsub::Integer)
+function condcov( S::Matrix{<:AbstractFloat}, 
+                  jinds::UnitRange{Int}, 
+                  notjinds::Vector{Int} )
 
-    #length
-    len = length(mean_vector)
+    # pieces for conditional covariance matrix
+    Σ11 = S[jinds, jinds]
+    Σ12 = S[jinds, notjinds]
+    Σ21 = Σ12'
+    Σ22 = S[notjinds, notjinds]
+
+    Σ12_invΣ22 = Σ12 / Σ22 
+
+    #Covariance for sampling distribution
+    Σ = Σ11 - Σ12_invΣ22*Σ21
+    Σ = 0.5*(Σ + Σ')
+
+    return (Σ, Σ12_invΣ22)
+
+end
+
+# single draw
+function MvNormal_Gibbs(mu::Vector{<:AbstractFloat},  # mean
+                        S::Matrix{<:AbstractFloat},   # covariance
+                        x::Vector{<:AbstractFloat},   # current values
+                        nsub::Int)                    # number of subvectors
+                                            
 
     #Check nsub
-    check   = len/nsub
+    nfull   = length(mu)
+    sub_len = nfull/nsub::Int
 
-    if check != round(check, digits = 0)
+    for j in 1:nsub # index of subvector
 
-        throw(UndefVarError(:nsubdoesnotdividevectorevenly))
+        #indices of j-th subvector
+        start = Int((j - 1)*sub_len + 1)
+        stop  = Int(j*sub_len)
 
-    else
+        # more helper indices
+        jinds    = start:stop
+        notjinds = [1:(start - 1); (stop + 1):nfull]
 
-        sub_len = convert(Integer, check)
+        # Σ
+        (Σ, Σ12_invΣ22) = condcov(S, jinds, notjinds)
+
+        # μ
+        μ = mu[jinds] + Σ12_invΣ22*( x[notjinds] - mu[notjinds] )
+
+        # Sample
+        x[jinds] = rand(MvNormal(μ, Σ))
 
     end
 
-    #Set up matrix for sampling
-    samp      = ones(len, nsim)
+    return x
+end
+
+# multiple iterations
+function MvNormal_Gibbs( nsim::Int, 
+                         mean_vector::Vector{<:AbstractFloat},
+                         covariance::Matrix{<:AbstractFloat}, 
+                         nsub::Int )
+
+    #preallocate
+    samp      = ones( length(mean_vector), nsim )
     samp[:,1] = mean_vector
 
-    #Gibbs sample multivariate
+    #Gibbs sample multiple draws
     for i in 2:nsim
-        for j in 1:nsub
-
-            #reference indices
-            start = (j - 1)*sub_len + 1
-            stop  = sub_len*j
-
-            #Form vector of conditional
-            a = vcat(samp[1:start - 1,i], samp[stop + 1:end, i - 1])
-
-            #Σ11
-            Σ11 = covariance[start:stop , start:stop]
-
-            #Σ12
-            Σ12 = hcat(covariance[start:stop, 1:start - 1],
-                       covariance[start:stop, stop+1:end])
-
-            #Σ21
-            Σ21 = vcat(covariance[1:start - 1, start:stop],
-                       covariance[stop + 1:end, start:stop])
-
-            #Σ22
-            cov1 = vcat(covariance[1:start - 1, 1:start - 1],
-                        covariance[stop + 1:end, 1:start - 1])
-            cov2 = vcat(covariance[1:start - 1, stop + 1:end],
-                        covariance[stop + 1:end, stop + 1:end])
-            Σ22  = hcat(cov1, cov2)
-
-            #μ
-            μ1 = mean_vector[start:stop]
-            μ2 = vcat(mean_vector[1:start - 1], mean_vector[stop + 1:end])
-
-            #Mean for sampling distribution
-            μ = μ1 + Σ12*inv(Σ22)*(a - μ2)
-
-            #Covariance for sampling distribution
-            Σ = Σ11 - Σ12*inv(Σ22)*Σ21
-            Σ = 0.5*(Σ + Σ')
-
-            #Sample
-            samp[start:stop, i] = rand(MvNormal(μ, Σ))
-
-        end
+        
+        samp[:,i] = MvNormal_Gibbs(mean_vector, covariance, samp[:,i-1], nsub)
+        
     end
 
     return samp
@@ -90,13 +93,16 @@ end
 # Parameters
 # -----------------------------------------------------------------------------
 
-nsim        = 1000
-vec_len     = 20
+nsim        = 100000::Int
+burn        = 0::Int
+
+vec_len     = 20::Int
+nsub        = 5::Int
+
+# random mean and covariance
 mean_vector = rand(vec_len)
 prep        = rand(vec_len,vec_len)
 covariance  = (prep + prep')/2 + vec_len*Matrix{Float64}(I, vec_len, vec_len )
-nsub        = 5
-burn        = 300
 
 # -----------------------------------------------------------------------------
 # Example
@@ -105,4 +111,5 @@ burn        = 300
 samp = MvNormal_Gibbs(nsim, mean_vector, covariance, nsub)
 
 #Check difference in mean
-mean_check = mean(samp[:,burn:end] , dims = 2) - mean_vector
+mean_check = mean(samp[:,burn+1:end] , dims = 2) - mean_vector
+cov_check  = cov(samp[:,burn+1:end], dims=2) - covariance
