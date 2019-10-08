@@ -102,7 +102,8 @@ end
 function MvNormal_Gibbs( nsim::Int, 
                          mean_vector::Vector{<:AbstractFloat},
                          covariance::Matrix{<:AbstractFloat}, 
-                         nsub::Int )
+                         nsub::Int  # the number of subvectors 
+                        ) 
 
     #preallocate
     samp      = ones( length(mean_vector), nsim )
