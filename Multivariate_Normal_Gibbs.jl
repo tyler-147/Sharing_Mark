@@ -48,8 +48,8 @@ end
 function condmean( x::Vector{<:AbstractFloat}, 
                    mu::Vector{<:AbstractFloat}, 
                    Σ12_invΣ22::Matrix{<:AbstractFloat},
-                   jinds,
-                   notjinds )
+                   jinds::UnitRange{Int}, 
+                   notjinds::Vector{Int} )
 
     μ = mu[jinds] + Σ12_invΣ22*( x[notjinds] - mu[notjinds] )
 
