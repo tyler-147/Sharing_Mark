@@ -33,6 +33,18 @@ function condcov( S::Matrix{<:AbstractFloat},
 
 end
 
+function setjinds( j::Int, sub_len::Int, full_len::Int )
+
+    #indices of j-th subvector
+    start = Int((j - 1)*sub_len + 1)
+    stop  = Int(j*sub_len)
+
+    jinds    = start:stop                   # UnitRange
+    notjinds = setdiff(1:full_len, jinds)   # Vector of Ints
+
+    return (jinds, notjinds)
+end
+
 # single draw
 function MvNormal_Gibbs(mu::Vector{<:AbstractFloat},  # mean
                         S::Matrix{<:AbstractFloat},   # covariance
@@ -41,26 +53,20 @@ function MvNormal_Gibbs(mu::Vector{<:AbstractFloat},  # mean
                                             
 
     #Check nsub
-    nfull   = length(mu)
-    sub_len = nfull/nsub::Int
+    nfull   = length(mu)::Int
+    sub_len = div(nfull, nsub)::Int
 
     for j in 1:nsub # index of subvector
 
-        #indices of j-th subvector
-        start = Int((j - 1)*sub_len + 1)
-        stop  = Int(j*sub_len)
+        (jinds, notjinds) = setjinds(j, sub_len, nfull)
 
-        # more helper indices
-        jinds    = start:stop
-        notjinds = setdiff(1:nfull, jinds)
-
-        # Σ
+        # Σ[j|notj]
         (Σ, Σ12_invΣ22) = condcov(S, jinds, notjinds)
 
-        # μ
+        # μ[j|notj]
         μ = mu[jinds] + Σ12_invΣ22*( x[notjinds] - mu[notjinds] )
 
-        # Sample
+        # Sample x[j] | x[notj]
         x[jinds] = rand(MvNormal(μ, Σ))
 
     end
