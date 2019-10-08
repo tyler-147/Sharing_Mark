@@ -52,7 +52,8 @@ function MvNormal_Gibbs(mu::Vector{<:AbstractFloat},  # mean
 
         # more helper indices
         jinds    = start:stop
-        notjinds = [1:(start - 1); (stop + 1):nfull]
+        notjinds = setdiff(1:nfull, jinds)
+        # notjinds = [1:(start - 1); (stop + 1):nfull]
 
         # Σ
         (Σ, Σ12_invΣ22) = condcov(S, jinds, notjinds)
