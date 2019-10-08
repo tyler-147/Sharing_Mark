@@ -56,6 +56,21 @@ function condmean( x::Vector{<:AbstractFloat},
     return μ
 end
 
+function cond_mean_cov( x::Vector{<:AbstractFloat}, 
+                        mu::Vector{<:AbstractFloat}, 
+                        S::Matrix{<:AbstractFloat}, 
+                        jinds::UnitRange{Int}, 
+                        notjinds::Vector{Int} )
+
+    # Σ[j|notj]
+    (Σ, Σ12_invΣ22) = condcov(S, jinds, notjinds)
+
+    # μ[j|notj]
+    μ = condmean(x, mu, Σ12_invΣ22, jinds, notjinds)
+
+    return (μ, Σ)
+end
+
 # single draw
 function MvNormal_Gibbs(mu::Vector{<:AbstractFloat},  # mean
                         S::Matrix{<:AbstractFloat},   # covariance
@@ -69,13 +84,11 @@ function MvNormal_Gibbs(mu::Vector{<:AbstractFloat},  # mean
 
     for j in 1:nsub # index of subvector
 
+        # set j-th block indices
         (jinds, notjinds) = setjinds(j, sub_len, nfull)
 
-        # Σ[j|notj]
-        (Σ, Σ12_invΣ22) = condcov(S, jinds, notjinds)
-
-        # μ[j|notj]
-        μ = condmean(x, mu, Σ12_invΣ22, jinds, notjinds)
+        # compute conditional mean and covariance
+        (μ, Σ) = cond_mean_cov(x, mu, S, jinds, notjinds)
 
         # Sample x[j] | x[notj]
         x[jinds] = rand(MvNormal(μ, Σ))
