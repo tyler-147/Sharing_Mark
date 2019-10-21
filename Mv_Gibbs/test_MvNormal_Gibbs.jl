@@ -24,10 +24,10 @@ end
 cd(location_data)
 
 # Covariance functions
-include("Multivariate Normal Gibbs\\Multivariate_Normal_Gibbs_Covariance.jl")
+include("Multivariate_Normal_Gibbs_Covariance.jl")
 
 # Precision functions
-include("Multivariate Normal Gibbs\\Multivariate_Normal_Gibbs_Precision.jl")
+include("Multivariate_Normal_Gibbs_Precision.jl")
 
 # -----------------------------------------------------------------------------
 # Parameters
@@ -57,3 +57,4 @@ samp_prec = MvNormal_Gibbs_Precision(nsim, mean_vector, prec, nsub)
 # -----------------------------------------------------------------------------
 
 mean_diff = mean(samp_cov, dims = 2) - mean(samp_prec, dims = 2)
+
