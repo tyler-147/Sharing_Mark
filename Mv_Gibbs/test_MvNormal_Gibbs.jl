@@ -24,6 +24,9 @@ end
 cd(location_data)
 
 # Covariance functions
+include("helpers_indexing.jl")
+
+# Covariance functions
 include("Multivariate_Normal_Gibbs_Covariance.jl")
 
 # Precision functions
@@ -33,7 +36,7 @@ include("Multivariate_Normal_Gibbs_Precision.jl")
 # Parameters
 # -----------------------------------------------------------------------------
 
-nsim        = 100000::Int
+nsim        = 500000::Int
 burn        = 0::Int
 
 vec_len     = 20::Int
