@@ -36,8 +36,10 @@ function condmean_prec( x::Vector{<:AbstractFloat},
                    Λ12::Matrix{<:AbstractFloat},
                    jinds::UnitRange{Int},
                    notjinds::Vector{Int} )
+    
     #estimate conditional mu
     μ = mu[jinds] - Σ*Λ12*(x[notjinds] - mu[notjinds])
+    
     return μ
 end
 
@@ -46,10 +48,13 @@ function cond_mean_prec( x::Vector{<:AbstractFloat},
                         S::Matrix{<:AbstractFloat},
                         jinds::UnitRange{Int},
                         notjinds::Vector{Int} )
+    
     # Σ[j|notj]
     (Σ, Λ12) = condcov_prec(S, jinds, notjinds)
+    
     # μ[j|notj]
     μ = condmean_prec(x, mu, Σ, Λ12, jinds, notjinds)
+    
     return (μ, Σ)
 end
 
@@ -57,17 +62,24 @@ function MvNormal_Gibbs_Precision( mu::Vector{<:AbstractFloat},
                             S::Matrix{<:AbstractFloat},
                             x::Vector{<:AbstractFloat},
                             nsub::Int )
+    
     #Check nsub
     nfull   = length(mu)::Int
     sub_len = div(nfull, nsub)::Int
+    
     for j in 1:nsub #number of subvector
+        
         # set j-th block indices
         (jinds, notjinds) = setjinds(j, sub_len, nfull)
+        
         # compute conditional mean and covariance
         (μ, Σ) = cond_mean_prec(x, mu, S, jinds, notjinds)
+        
         #sample conditional vector
         x[jinds] = rand(MvNormal(μ, Σ))
+        
     end
+    
     return x
 end
 
@@ -76,12 +88,17 @@ function MvNormal_Gibbs_Precision( nsim::Int,
                          mu::Vector{<:AbstractFloat},
                          S::Matrix{<:AbstractFloat},
                          nsub::Int )
+    
     #preallocate
     samp      = ones( length(mu), nsim )
     samp[:,1] = mu
+    
     #Gibbs sample multiple draws
     for i in 2:nsim
+        
         samp[:,i] = MvNormal_Gibbs_Precision(mu, S, samp[:,i-1], nsub)
+        
     end
+    
     return samp
 end
