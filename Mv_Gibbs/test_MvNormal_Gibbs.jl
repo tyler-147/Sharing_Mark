@@ -39,8 +39,8 @@ include("Multivariate_Normal_Gibbs_Precision.jl")
 nsim        = 500000::Int
 burn        = 0::Int
 
-vec_len     = 20::Int
-nsub        = 5::Int
+vec_len     = 12::Int
+nsub        = 4::Int
 
 # random mean and covariance
 mean_vector = rand(vec_len)
