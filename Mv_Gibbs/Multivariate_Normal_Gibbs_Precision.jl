@@ -27,6 +27,7 @@ function condcov_prec(S::Matrix{<:AbstractFloat},
     #estimate conditional sigma
     Σ = inv(Λ11)
     Σ = .5*( Σ + Σ' )
+    
     return (Σ, Λ12)
 end
 
