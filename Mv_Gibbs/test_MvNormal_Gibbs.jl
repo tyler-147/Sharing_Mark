@@ -4,14 +4,30 @@ using Distributions, Statistics, LinearAlgebra, Random
 Random.seed!(8675309)
 
 # -----------------------------------------------------------------------------
+# File I/O settings and load functions
+# -----------------------------------------------------------------------------
+
+if homedir() == "C:\\Users\\tgwin"
+
+  location_data = "C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni"
+
+elseif homedir() == "C:\\Users\\Mark"
+
+  location_data = "C:\\Users\\Mark\\Documents\\git_repos\\Sharing_Mark"
+
+end
+
+# -----------------------------------------------------------------------------
 # Functions
 # -----------------------------------------------------------------------------
 
+cd(location_data)
+
 # Covariance functions
-include("C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni\\Multivariate Normal Gibbs\\Multivariate_Normal_Gibbs_Covariance.jl")
+include("Multivariate Normal Gibbs\\Multivariate_Normal_Gibbs_Covariance.jl")
 
 # Precision functions
-include("C:\\Users\\tgwin\\OneDrive\\Fed\\Mark Bognanni\\Multivariate Normal Gibbs\\Multivariate_Normal_Gibbs_Precision.jl")
+include("Multivariate Normal Gibbs\\Multivariate_Normal_Gibbs_Precision.jl")
 
 # -----------------------------------------------------------------------------
 # Parameters
