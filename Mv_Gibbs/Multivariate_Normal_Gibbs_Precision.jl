@@ -21,8 +21,8 @@ function condcov_prec(S::Matrix{<:AbstractFloat},
                       notjinds::Vector{Int})
 
     #pieces of the precision matrix
-    Λ11 = prec[jinds, jinds]
-    Λ12 = prec[jinds, notjinds]
+    Λ11 = S[jinds, jinds]
+    Λ12 = S[jinds, notjinds]
 
     #estimate conditional sigma
     Σ = inv(Λ11)
